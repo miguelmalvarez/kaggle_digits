@@ -9,14 +9,13 @@ def main():
     train_instances = [x[1:] for x in train_data]
 
     #train the model
-    classifier = RandomForestClassifier(n_estimators=100))
+    classifier = RandomForestClassifier(n_estimators=100)
     classifier.fit(train_instances, judgements)
-    model = train(train_data)
 
     #Read the test data and make predictions
     test_data = csv_io.read_csv("data/test.csv")
     decisions = classifier.predict(test_data)
-    formatted_decisions = ["ImageId" "Label"]
+    formatted_decisions = [["ImageId", "Label"]]
 
     count = 1
     for decision in decisions:
