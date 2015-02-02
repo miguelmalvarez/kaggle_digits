@@ -43,7 +43,7 @@ def main():
 
     # Output results
     decisions_formatted = np.append(np.array('Label'), decisions)
-    ids = ['ImageId'] + list(range(len(decisions_formatted) -1))
+    ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
     pd.DataFrame(output).to_csv('data/results.csv', header=False, index=False)
 
