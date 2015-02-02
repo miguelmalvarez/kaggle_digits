@@ -40,15 +40,12 @@ def main():
     #Read the test data and make predictions
     test_data =  pd.read_csv('data/test.csv', header=0).values
     decisions = classifier.predict(test_data)
-    formatted_decisions = [['ImageId', 'Label']]
 
-    count = 1
-    for decision in decisions:
-    	formatted_decisions.append([str(count), decision])
-    	count += 1
-
-    #write to a results CSV file 
-    csv_io.write_csv('data/results.csv', formatted_decisions)
+    # Output results
+    decisions_formatted = np.append(np.array('Label'), decisions)
+    ids = ['ImageId'] + list(range(len(decisions_formatted) -1))
+    output = np.column_stack((ids, decisions_formatted))
+    pd.DataFrame(output).to_csv('data/results.csv', header=False, index=False)
 
 if __name__=='__main__':
     main()
