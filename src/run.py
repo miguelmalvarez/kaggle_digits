@@ -1,7 +1,7 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import cross_validation
+import pandas as pd
 import numpy as np
-import csv_io
 
 def accuracy(decisions, judgements):
     accuracy = 0.0
@@ -10,12 +10,11 @@ def accuracy(decisions, judgements):
             accuracy += 1
     if (accuracy != 0):        
         accuracy = accuracy/len(decisions)
-
     return accuracy
 
 def main():
 	#Read in the training data and train the model
-    train_data = csv_io.read_csv("data/train.csv")
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -33,15 +32,15 @@ def main():
 
         quality += accuracy(decisions_cv, test_judgements_cv)
     quality = quality/len(cv)
-    print("Quality " + str(quality))
+    print('Quality ' + str(quality))
 
     #train the model    
     classifier.fit(train_instances, judgements)
 
     #Read the test data and make predictions
-    test_data = csv_io.read_csv("data/test.csv")
+    test_data =  pd.read_csv('data/test.csv', header=0).values
     decisions = classifier.predict(test_data)
-    formatted_decisions = [["ImageId", "Label"]]
+    formatted_decisions = [['ImageId', 'Label']]
 
     count = 1
     for decision in decisions:
@@ -49,8 +48,7 @@ def main():
     	count += 1
 
     #write to a results CSV file 
-    csv_io.write_csv("data/results.csv", formatted_decisions)
+    csv_io.write_csv('data/results.csv', formatted_decisions)
 
-
-if __name__=="__main__":
+if __name__=='__main__':
     main()
