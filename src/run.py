@@ -5,6 +5,7 @@ import numpy as np
 import logging
 import time
 import datetime
+from sklearn.naive_bayes import GaussianNB
 
 def accuracy(decisions, judgements):
     accuracy = 0.0
@@ -22,18 +23,15 @@ def log_info(message):
 def init_logging():
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename='history.log')
 
-def main():
-    init_logging()
-    log_info('============== \nClassification started... ')
+def candidates():
+    classifiers = []
+    rf = RandomForestClassifier(n_estimators=100)
+    classifiers.append(["RandomForest-100 ", rf])
+    classifiers.append(["Naive-Bayes", GaussianNB()])
+    return classifiers
 
-    log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
-    #the first column of the training set will be the judgements
-    judgements = np.array([str(int (x[0])) for x in train_data])
-    train_instances = np.array([x[1:] for x in train_data])
-
-    log_info('Crossvalidation started... ')
-    classifier = RandomForestClassifier(n_estimators=100)
+def xval(classifier, train_instances, judgements):
+    log_info('Crossvalidation started... ')    
     cv = cross_validation.StratifiedKFold(np.array(judgements), n_folds=5)
 
     avg_quality = 0.0
@@ -44,10 +42,39 @@ def main():
         quality = accuracy(decisions_cv, test_judgements_cv)
         avg_quality += quality
         log_info('Quality of split... ' + str(quality))
-    quality = quality/len(cv)
-
+    quality = avg_quality/len(cv)
     log_info('Estimated quality of model... ' + str(quality))
 
+    return quality
+
+def best_model(classifiers, train_instances, judgements):
+    best_quality = 0.0
+    best_classifier = None
+
+    for name, classifier in classifiers:
+        log_info('Considering classifier... ' + name)
+        quality = xval(classifier, train_instances, judgements)
+        if (quality > best_quality):
+            best_quality = quality
+            best_classifier = [name, classifier]
+
+    log_info('Best classifier... ' + best_classifier[0])
+
+    return best_classifier[1]
+
+def main():
+    init_logging()
+    log_info('============== \nClassification started... ')
+
+    log_info('Reading training data... ')
+    train_data = pd.read_csv('data/train.csv', header=0).values
+    #the first column of the training set will be the judgements
+    judgements = np.array([str(int (x[0])) for x in train_data])
+    train_instances = np.array([x[1:] for x in train_data])
+
+    classifier = best_model(candidates(), train_instances, judgements)
+
+    #build the best model
     log_info('Building model... ')
     classifier.fit(train_instances, judgements)
 
