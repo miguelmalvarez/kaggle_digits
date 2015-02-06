@@ -6,7 +6,7 @@ import logging
 import time
 import datetime
 from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 
 def accuracy(decisions, judgements):
     accuracy = 0.0
@@ -29,7 +29,7 @@ def candidates():
     rf = RandomForestClassifier(n_estimators=100)
     classifiers.append(["RandomForest-100 ", rf])
     classifiers.append(["Naive-Bayes", GaussianNB()])
-    classifiers.append(["SVM", SVC(kernel="linear")])
+    classifiers.append(["SVM", LinearSVC()])
     return classifiers
 
 def xval(classifier, train_instances, judgements):
