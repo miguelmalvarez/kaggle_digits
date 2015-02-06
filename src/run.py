@@ -29,7 +29,7 @@ def candidates():
     rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
     classifiers.append(["RandomForest-100 ", rf])
     classifiers.append(["Naive-Bayes", GaussianNB()])
-    classifiers.append(["SVM", LinearSVC()])
+    classifiers.append(["LinearSVC", LinearSVC()])
     return classifiers
 
 def xval(classifier, train_instances, judgements):
