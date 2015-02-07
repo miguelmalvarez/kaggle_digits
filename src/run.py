@@ -8,10 +8,13 @@ import datetime
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import VarianceThreshold
+from collections import Counter
 
 def log_info(message):
     ts = time.time()
-    logging.info(message + datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
+    logging.info(message + " " + datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
 
 def init_logging():
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename='history.log')
@@ -20,9 +23,18 @@ def candidates():
     classifiers = []
     rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
     classifiers.append(["RandomForest-100 ", rf])
+    #classifiers.append(["LR", LogisticRegression])
     #classifiers.append(["Naive-Bayes", GaussianNB()])
     #classifiers.append(["LinearSVC", LinearSVC()])
     return classifiers
+
+def feature_selection(train_instances):
+    log_info('Crossvalidation started... ') 
+    selector = VarianceThreshold()
+    selector.fit(train_instances)
+    log_info('Number of features used... ' + str(Counter(selector.get_support())[True]))
+    log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
+    return selector
 
 def xval(classifier, train_instances, judgements):
     log_info('Crossvalidation started... ')    
@@ -66,6 +78,10 @@ def main():
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
 
+    #Feature selection
+    fs = feature_selection(train_instances)
+    train_instances = fs.transform(train_instances)
+
     classifier = best_model(candidates(), train_instances, judgements)
 
     #build the best model
@@ -73,7 +89,7 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  pd.read_csv('data/test-sample.csv', header=0).values
+    test_data =  fs.transform(pd.read_csv('data/test.csv', header=0).values)
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
