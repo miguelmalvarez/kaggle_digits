@@ -7,15 +7,7 @@ import time
 import datetime
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
-
-def accuracy(decisions, judgements):
-    accuracy = 0.0
-    for (decision, judgement) in zip(decisions, judgements):
-        if (decision == judgement):
-            accuracy += 1
-    if (accuracy != 0):        
-        accuracy = accuracy/len(decisions)
-    return accuracy
+from sklearn.metrics import accuracy_score
 
 def log_info(message):
     ts = time.time()
@@ -28,8 +20,8 @@ def candidates():
     classifiers = []
     rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
     classifiers.append(["RandomForest-100 ", rf])
-    classifiers.append(["Naive-Bayes", GaussianNB()])
-    classifiers.append(["LinearSVC", LinearSVC()])
+    #classifiers.append(["Naive-Bayes", GaussianNB()])
+    #classifiers.append(["LinearSVC", LinearSVC()])
     return classifiers
 
 def xval(classifier, train_instances, judgements):
@@ -41,7 +33,7 @@ def xval(classifier, train_instances, judgements):
         train_cv, test_cv = train_instances[train_index], train_instances[test_index]
         train_judgements_cv, test_judgements_cv = judgements[train_index], judgements[test_index]
         decisions_cv = classifier.fit(train_cv, train_judgements_cv).predict(test_cv)
-        quality = accuracy(decisions_cv, test_judgements_cv)
+        quality = accuracy_score(decisions_cv, test_judgements_cv)
         avg_quality += quality
         log_info('Quality of split... ' + str(quality))
     quality = avg_quality/len(cv)
@@ -81,14 +73,14 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  pd.read_csv('data/test.csv', header=0).values
+    test_data =  pd.read_csv('data/test-sample.csv', header=0).values
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
-    pd.DataFrame(output).to_csv('data/results.csv', header=False, index=False)
+    pd.DataFrame(output).to_csv('data/results-sample.csv', header=False, index=False)
 
 if __name__=='__main__':
     main()
