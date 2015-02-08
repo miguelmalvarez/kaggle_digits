@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import VarianceThreshold
 from collections import Counter
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import AdaBoostClassifier
 
 def log_info(message):
     ts = time.time()
@@ -23,12 +24,11 @@ def init_logging():
 
 def candidates():
     classifiers = []
-    classifiers.append(["RandomForest-1000 ", RandomForestClassifier(n_estimators=1000, n_jobs=-1)])
-    classifiers.append(["Naive-Bayes", GaussianNB()])
-    classifiers.append(["LinearSVC", LinearSVC()])
-    classifiers.append(["kNN 10", KNeighborsClassifier(3)])
+    classifiers.append(["SVM-poly-4", SVC(kernel="poly", degree=4)])
     classifiers.append(["SVM-poly-3", SVC(kernel="poly", degree=3)])
-    classifiers.append(["LR", LogisticRegression()])
+    classifiers.append(["RandomForest-1000 ", RandomForestClassifier(n_estimators=1000, n_jobs=-1)])    
+    classifiers.append(["AdaBoost", AdaBoostClassifier(n_estimators=100)])
+    classifiers.append(["kNN 5", KNeighborsClassifier(5)])    
     return classifiers
 
 def feature_selection(train_instances):
@@ -76,7 +76,7 @@ def main():
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train-sample.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -92,7 +92,7 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  fs.transform(pd.read_csv('data/test-sample.csv', header=0).values)
+    test_data =  fs.transform(pd.read_csv('data/test.csv', header=0).values)
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
