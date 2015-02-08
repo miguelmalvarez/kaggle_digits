@@ -7,10 +7,12 @@ import time
 import datetime
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import VarianceThreshold
 from collections import Counter
+from sklearn.neighbors import KNeighborsClassifier
 
 def log_info(message):
     ts = time.time()
@@ -21,11 +23,12 @@ def init_logging():
 
 def candidates():
     classifiers = []
-    rf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
-    classifiers.append(["RandomForest-100 ", rf])
-    #classifiers.append(["LR", LogisticRegression])
-    #classifiers.append(["Naive-Bayes", GaussianNB()])
-    #classifiers.append(["LinearSVC", LinearSVC()])
+    classifiers.append(["RandomForest-1000 ", RandomForestClassifier(n_estimators=1000, n_jobs=-1)])
+    classifiers.append(["Naive-Bayes", GaussianNB()])
+    classifiers.append(["LinearSVC", LinearSVC()])
+    classifiers.append(["kNN 10", KNeighborsClassifier(3)])
+    classifiers.append(["SVM-poly-3", SVC(kernel="poly", degree=3)])
+    classifiers.append(["LR", LogisticRegression()])
     return classifiers
 
 def feature_selection(train_instances):
@@ -73,7 +76,7 @@ def main():
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -89,14 +92,14 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  fs.transform(pd.read_csv('data/test.csv', header=0).values)
+    test_data =  fs.transform(pd.read_csv('data/test-sample.csv', header=0).values)
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
-    pd.DataFrame(output).to_csv('data/results-sample.csv', header=False, index=False)
+    pd.DataFrame(output).to_csv('data/results.csv', header=False, index=False)
 
 if __name__=='__main__':
     main()
