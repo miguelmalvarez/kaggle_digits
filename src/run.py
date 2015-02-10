@@ -1,10 +1,10 @@
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import cross_validation
 import pandas as pd
 import numpy as np
 import logging
 import time
 import datetime
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import cross_validation
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
@@ -14,13 +14,15 @@ from sklearn.feature_selection import VarianceThreshold
 from collections import Counter
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.preprocessing import StandardScaler
 
 def log_info(message):
     ts = time.time()
-    logging.info(message + " " + datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
+    logging.info(message + " " + datetime.datetime
+        .fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
 
-def init_logging():
-    logging.basicConfig(format='%(message)s', level=logging.INFO, filename='history.log')
+def init_logging(log_file_path):
+    logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
 
 def candidates():
     classifiers = []
@@ -38,6 +40,11 @@ def feature_selection(train_instances):
     log_info('Number of features used... ' + str(Counter(selector.get_support())[True]))
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
+
+def feature_normalisation(train_instances):
+    scaler = StandardScaler()
+    scaler.fit(train_instances)
+    return scaler
 
 def xval(classifier, train_instances, judgements):
     log_info('Crossvalidation started... ')    
@@ -72,11 +79,12 @@ def best_model(classifiers, train_instances, judgements):
     return best_classifier[1]
 
 def main():
-    init_logging()
+    file_log_path = './history.log'
+    init_logging(file_log_path)
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -85,6 +93,10 @@ def main():
     fs = feature_selection(train_instances)
     train_instances = fs.transform(train_instances)
 
+    #Normalisation
+    scaler = feature_normalisation(train_instances)
+    train_instances = scaler.transform(train_instances)
+
     classifier = best_model(candidates(), train_instances, judgements)
 
     #build the best model
@@ -92,7 +104,7 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  fs.transform(pd.read_csv('data/test.csv', header=0).values)
+    test_data =  scaler.transform(fs.transform(pd.read_csv('data/test-sample.csv', header=0).values))
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
