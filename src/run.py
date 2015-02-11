@@ -44,6 +44,7 @@ def feature_selection(train_instances):
 def feature_normalisation(train_instances):
     scaler = StandardScaler()
     scaler.fit(train_instances)
+    log_info('Normalisation of train data done... ')
     return scaler
 
 def xval(classifier, train_instances, judgements):
@@ -88,6 +89,7 @@ def main():
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
+    train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     #Feature selection
     fs = feature_selection(train_instances)
@@ -104,8 +106,12 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data =  scaler.transform(fs.transform(pd.read_csv('data/test-sample.csv', header=0).values))
-    decisions = classifier.predict(test_data)
+    test_data = pd.read_csv('data/test-sample.csv', header=0)
+    test_instances = np.array([x[1:] for x in test_data])
+    test_instances = [[float(x) for x in instance] for instance in test_instances]
+    test_instances = scaler.transform(fs.transform(test_instances))
+
+    decisions = classifier.predict(test_instances)
 
     log_info('Output results... ')
     decisions_formatted = np.append(np.array('Label'), decisions)
