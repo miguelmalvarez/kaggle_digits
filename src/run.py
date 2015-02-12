@@ -15,6 +15,8 @@ from collections import Counter
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+
 
 def log_info(message):
     ts = time.time()
@@ -42,7 +44,7 @@ def feature_selection(train_instances):
     return selector
 
 def feature_normalisation(train_instances):
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     scaler.fit(train_instances)
     log_info('Normalisation of train data done... ')
     return scaler
@@ -97,7 +99,7 @@ def main():
 
     #Normalisation
     scaler = feature_normalisation(train_instances)
-    train_instances = scaler.transform(train_instances)
+    scaler.transform(train_instances)
 
     classifier = best_model(candidates(), train_instances, judgements)
 
