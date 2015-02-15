@@ -16,7 +16,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.grid_search import GridSearchCV
 
 def log_info(message):
     ts = time.time()
@@ -26,13 +26,17 @@ def log_info(message):
 def init_logging(log_file_path):
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
 
-def candidates():
-    classifiers = []
-    classifiers.append(["SVM-poly-4", SVC(kernel="poly", degree=4)])
-    classifiers.append(["SVM-poly-3", SVC(kernel="poly", degree=3)])
-    classifiers.append(["RandomForest-1000 ", RandomForestClassifier(n_estimators=1000, n_jobs=-1)])        
-    classifiers.append(["kNN 5", KNeighborsClassifier(5)])    
-    return classifiers
+def candidate_families():
+    candidates = []
+    svm_tuned_parameters = [{'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4, 5]},
+                            {'kernel': ['linear'], 'C': [1, 10, 100, 1000]},
+                            {'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],'C': [1, 10, 100, 1000]}]
+    candidates.append(["SVM", SVC(), svm_tuned_parameters])
+    rf_tuned_parameters = [{"n_estimators": [10, 100, 250, 500, 1000]}]
+    candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
+    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
+    candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
+    return candidates
 
 def feature_selection(train_instances):
     log_info('Crossvalidation started... ') 
@@ -42,10 +46,10 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-def feature_normalisation(train_instances):
+def feature_scaling(train_instances):
     scaler = MinMaxScaler()
     scaler.fit(train_instances)
-    log_info('Normalisation of train data done... ')
+    log_info('Scaling of train data done... ')
     return scaler
 
 def xval(classifier, train_instances, judgements):
@@ -65,9 +69,20 @@ def xval(classifier, train_instances, judgements):
 
     return quality
 
-def best_model(classifiers, train_instances, judgements):
+def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
     best_classifier = None
+
+    # It will contain the best candidate per family
+    classifiers = []
+
+    for name, model, parameters in classifier_families:
+        log_info('Grid search for... ' + name)
+        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
+        clf.fit(train_instances, judgements)
+        best_estimator = clf.best_estimator_
+        log_info('Best hyperparameters: ' + clf.best_params_)
+        classifier.append([name, best_estimator])
 
     for name, classifier in classifiers:
         log_info('Considering classifier... ' + name)
@@ -86,7 +101,7 @@ def main():
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -97,16 +112,16 @@ def main():
     train_instances = fs.transform(train_instances)
 
     #Normalisation
-    scaler = feature_normalisation(train_instances)
+    scaler = feature_scaling(train_instances)
     scaler.transform(train_instances)
-    classifier = best_model(candidates(), train_instances, judgements)
+    classifier = best_model(candidate_families(), train_instances, judgements)
 
     #build the best model
     log_info('Building model... ')
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
+    test_data = pd.read_csv('data/test-sample.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
 
     test_instances = [[float(x) for x in instance] for instance in test_instances]
