@@ -18,19 +18,23 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
+# TODO: Better logs for grid search
+
+def current_timestamp():
+    ts = time.time()
+    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
 def log_info(message):
     ts = time.time()
-    logging.info(message + " " + datetime.datetime
-        .fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
+    logging.info(message + " " + current_timestamp())
 
 def init_logging(log_file_path):
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
 
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4, 5]},
-                            {'kernel': ['linear'], 'C': [1, 10, 100, 1000]},
-                            {'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],'C': [1, 10, 100, 1000]}]
+    svm_tuned_parameters = [{'kernel': ['poly'], 'C': [0.1, 1, 10, 100, 1000], 'degree': [3, 4, 5]},
+                            {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]}]
     candidates.append(["SVM", SVC(), svm_tuned_parameters])
     rf_tuned_parameters = [{"n_estimators": [10, 100, 250, 500, 1000]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
@@ -81,9 +85,10 @@ def best_model(classifier_families, train_instances, judgements):
         clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
         clf.fit(train_instances, judgements)
         best_estimator = clf.best_estimator_
-        log_info('Best hyperparameters: ' + clf.best_params_)
-        classifier.append([name, best_estimator])
+        log_info('Best hyperparameters: ' + str(clf.best_params_))
+        classifiers.append([name, best_estimator])
 
+    # TODO: xval can be deleted because we have Grid search now.
     for name, classifier in classifiers:
         log_info('Considering classifier... ' + name)
         quality = xval(classifier, train_instances, judgements)
@@ -96,12 +101,12 @@ def best_model(classifier_families, train_instances, judgements):
     return best_classifier[1]
 
 def main():
-    file_log_path = './history.log'
+    file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train-sample.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -121,7 +126,7 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test-sample.csv', header=0).values
+    test_data = pd.read_csv('data/test.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
 
     test_instances = [[float(x) for x in instance] for instance in test_instances]
