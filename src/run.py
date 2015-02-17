@@ -36,7 +36,7 @@ def candidate_families():
     candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
     rf_tuned_parameters = [{"n_estimators": [250, 500]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
-    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10]}]
+    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
     return candidates
 
@@ -54,48 +54,25 @@ def feature_scaling(train_instances):
     log_info('Scaling of train data done... ')
     return scaler
 
-def xval(classifier, train_instances, judgements):
-    log_info('Crossvalidation started... ')    
-    cv = cross_validation.StratifiedKFold(np.array(judgements), n_folds=5)
-
-    avg_quality = 0.0
-    for train_index, test_index in cv:        
-        train_cv, test_cv = train_instances[train_index], train_instances[test_index]
-        train_judgements_cv, test_judgements_cv = judgements[train_index], judgements[test_index]
-        decisions_cv = classifier.fit(train_cv, train_judgements_cv).predict(test_cv)
-        quality = accuracy_score(decisions_cv, test_judgements_cv)
-        avg_quality += quality
-        log_info('Quality of split... ' + str(quality))
-    quality = avg_quality/len(cv)
-    log_info('Estimated quality of model... ' + str(quality))
-
-    return quality
-
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
-    best_classifier = None
-
-    # It will contain the best candidate per family
+    best_classifier = None    
     classifiers = []
-
     for name, model, parameters in classifier_families:
         log_info('Grid search for... ' + name)
         clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=5)
         clf.fit(train_instances, judgements)
         best_estimator = clf.best_estimator_
         log_info('Best hyperparameters: ' + str(clf.best_params_))
-        classifiers.append([name, best_estimator])
+        classifiers.append([str(clf.best_params_), clf.best_score_, best_estimator])
 
-    # TODO: xval can be deleted because we have Grid search now.
-    for name, classifier in classifiers:
+    for name, quality, classifier in classifiers:
         log_info('Considering classifier... ' + name)
-        quality = xval(classifier, train_instances, judgements)
         if (quality > best_quality):
             best_quality = quality
             best_classifier = [name, classifier]
 
     log_info('Best classifier... ' + best_classifier[0])
-
     return best_classifier[1]
 
 def main():
