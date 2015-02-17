@@ -19,7 +19,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
 # TODO: Better logs for grid search
-
 def current_timestamp():
     ts = time.time()
     return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -33,12 +32,11 @@ def init_logging(log_file_path):
 
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'C': [0.1, 1, 10, 100, 1000], 'degree': [3, 4, 5]},
-                            {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]}]
-    candidates.append(["SVM", SVC(), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [10, 100, 250, 500, 1000]}]
+    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [3], 'C':[0.1, 1, 10]}]                        
+    candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
+    rf_tuned_parameters = [{"n_estimators": [250, 500]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
-    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
+    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
     return candidates
 
@@ -82,7 +80,7 @@ def best_model(classifier_families, train_instances, judgements):
 
     for name, model, parameters in classifier_families:
         log_info('Grid search for... ' + name)
-        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
+        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=5)
         clf.fit(train_instances, judgements)
         best_estimator = clf.best_estimator_
         log_info('Best hyperparameters: ' + str(clf.best_params_))
@@ -101,24 +99,29 @@ def best_model(classifier_families, train_instances, judgements):
     return best_classifier[1]
 
 def main():
+    scaling = False 
+
     file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     #Feature selection
+    logging.info("Selecting features... ")
     fs = feature_selection(train_instances)
     train_instances = fs.transform(train_instances)
 
     #Normalisation
-    scaler = feature_scaling(train_instances)
-    scaler.transform(train_instances)
+    if scaling:
+        logging.info("Normalisation... ")
+        scaler = feature_scaling(train_instances)
+        scaler.transform(train_instances)
     classifier = best_model(candidate_families(), train_instances, judgements)
 
     #build the best model
@@ -126,11 +129,13 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
+    test_data = pd.read_csv('data/test-sample.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
 
     test_instances = [[float(x) for x in instance] for instance in test_instances]
-    test_instances = scaler.transform(fs.transform(test_instances))
+    test_instances = fs.transform(test_instances)
+    if scaling:
+        test_instances = scaler.transform(test_instances)
 
     decisions = classifier.predict(test_instances)
 
@@ -138,7 +143,7 @@ def main():
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
-    pd.DataFrame(output).to_csv('data/results.csv', header=False, index=False)
+    pd.DataFrame(output).to_csv('data/results-sample.csv', header=False, index=False)
 
 if __name__=='__main__':
     main()
