@@ -32,12 +32,12 @@ def init_logging(log_file_path):
 
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [3], 'C':[0.1, 1, 10]}]                        
+    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
     candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [250, 500]}]
+    rf_tuned_parameters = [{"n_estimators": [250, 500, 1000]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
-    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5]}]
-    candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
+    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
+    candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
     return candidates
 
 def feature_selection(train_instances):
@@ -60,7 +60,7 @@ def best_model(classifier_families, train_instances, judgements):
     classifiers = []
     for name, model, parameters in classifier_families:
         log_info('Grid search for... ' + name)
-        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=5)
+        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
         clf.fit(train_instances, judgements)
         best_estimator = clf.best_estimator_
         log_info('Best hyperparameters: ' + str(clf.best_params_))
@@ -75,15 +75,13 @@ def best_model(classifier_families, train_instances, judgements):
     log_info('Best classifier... ' + best_classifier[0])
     return best_classifier[1]
 
-def main():
-    scaling = False 
-
+def run(scaling, output_path):
     file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train-sample.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -95,6 +93,7 @@ def main():
     train_instances = fs.transform(train_instances)
 
     #Normalisation
+    #TODO: Allow different scalers
     if scaling:
         logging.info("Normalisation... ")
         scaler = feature_scaling(train_instances)
@@ -106,7 +105,7 @@ def main():
     classifier.fit(train_instances, judgements)
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test-sample.csv', header=0).values
+    test_data = pd.read_csv('data/test.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
 
     test_instances = [[float(x) for x in instance] for instance in test_instances]
@@ -120,7 +119,11 @@ def main():
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
-    pd.DataFrame(output).to_csv('data/results-sample.csv', header=False, index=False)
+    pd.DataFrame(output).to_csv(output_path, header=False, index=False)
+
+def main():
+    run(True, 'data/results-no-scaling.csv')
+    run(False, 'data/results-no-scaling.csv')    
 
 if __name__=='__main__':
     main()
