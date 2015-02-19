@@ -48,8 +48,7 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-def feature_scaling(train_instances):
-    scaler = MinMaxScaler()
+def feature_scaling(scaler, train_instances):
     scaler.fit(train_instances)
     log_info('Scaling of train data done... ')
     return scaler
@@ -122,7 +121,8 @@ def run(scaling, output_path):
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
-    run(True, 'data/results-no-scaling.csv')
+    run(MinMaxScaler(), 'data/results-scaling.csv')
+    run(StandardScaler(), 'data/results-no-scaling.csv')
     run(False, 'data/results-no-scaling.csv')    
 
 if __name__=='__main__':
