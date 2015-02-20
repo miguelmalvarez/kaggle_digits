@@ -18,18 +18,22 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
-# TODO: Better logs for grid search
+# Formated current timestamp
 def current_timestamp():
     ts = time.time()
     return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
+# Log message with timestamp
 def log_info(message):
     ts = time.time()
     logging.info(message + " " + current_timestamp())
 
+# Initialise logging
 def init_logging(log_file_path):
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
 
+# List of candidate family classifiers with parameters for grid search
+# [name, classifier object, parameters].
 def candidate_families():
     candidates = []
     svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
@@ -40,6 +44,7 @@ def candidate_families():
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
     return candidates
 
+# Fitting a feature selector 
 def feature_selection(train_instances):
     log_info('Crossvalidation started... ') 
     selector = VarianceThreshold()
@@ -48,11 +53,13 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
+# Returns a Scaler object after fitting and transforming data.
 def feature_scaling(scaler, train_instances):
     scaler.fit(train_instances)
     log_info('Scaling of train data done... ')
     return scaler
 
+# Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
     best_classifier = None    
@@ -74,6 +81,8 @@ def best_model(classifier_families, train_instances, judgements):
     log_info('Best classifier... ' + best_classifier[0])
     return best_classifier[1]
 
+# Run the data and over multiple classifier and output the data in a csv file using a 
+# specific scaling object
 def run(scaling, output_path):
     file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
@@ -92,7 +101,6 @@ def run(scaling, output_path):
     train_instances = fs.transform(train_instances)
 
     #Normalisation
-    #TODO: Allow different scalers
     if scaling:
         logging.info("Normalisation... ")
         scaler = feature_scaling(train_instances)
@@ -121,9 +129,9 @@ def run(scaling, output_path):
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
-    run(MinMaxScaler(), 'data/results-scaling.csv')
-    run(StandardScaler(), 'data/results-no-scaling.csv')
-    run(False, 'data/results-no-scaling.csv')    
+    run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
+    run(StandardScaler(), 'data/results-scaling-std.csv')
+    run(None, 'data/results-no-scaling.csv')    
 
 if __name__=='__main__':
     main()
