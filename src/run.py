@@ -18,18 +18,22 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
-# TODO: Better logs for grid search
+# Formated current timestamp
 def current_timestamp():
     ts = time.time()
     return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
+# Log message with timestamp
 def log_info(message):
     ts = time.time()
     logging.info(message + " " + current_timestamp())
 
+# Initialise logging
 def init_logging(log_file_path):
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
 
+# List of candidate family classifiers with parameters for grid search
+# [name, classifier object, parameters].
 def candidate_families():
     candidates = []
     svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
@@ -40,6 +44,7 @@ def candidate_families():
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
     return candidates
 
+# Fitting a feature selector 
 def feature_selection(train_instances):
     log_info('Crossvalidation started... ') 
     selector = VarianceThreshold()
@@ -48,12 +53,7 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-def feature_scaling(train_instances):
-    scaler = MinMaxScaler()
-    scaler.fit(train_instances)
-    log_info('Scaling of train data done... ')
-    return scaler
-
+# Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
     best_classifier = None    
@@ -75,7 +75,9 @@ def best_model(classifier_families, train_instances, judgements):
     log_info('Best classifier... ' + best_classifier[0])
     return best_classifier[1]
 
-def run(scaling, output_path):
+# Run the data and over multiple classifier and output the data in a csv file using a 
+# specific scaling object
+def run(scaler, output_path):
     file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
     log_info('============== \nClassification started... ')
@@ -87,43 +89,40 @@ def run(scaling, output_path):
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
+    log_info('Reading testing data... ')
+    test_data = pd.read_csv('data/test.csv', header=0).values
+    test_instances = np.array([x[0:] for x in test_data])
+    test_instances = [[float(x) for x in instance] for instance in test_instances]
+    
     #Feature selection
     logging.info("Selecting features... ")
     fs = feature_selection(train_instances)
     train_instances = fs.transform(train_instances)
+    test_instances = fs.transform(test_instances)
 
     #Normalisation
-    #TODO: Allow different scalers
-    if scaling:
+    if scaler!=None:
         logging.info("Normalisation... ")
-        scaler = feature_scaling(train_instances)
-        scaler.transform(train_instances)
+        scaler.fit_transform(train_instances)
+        test_instances = scaler.transform(test_instances)
+
     classifier = best_model(candidate_families(), train_instances, judgements)
 
     #build the best model
     log_info('Building model... ')
     classifier.fit(train_instances, judgements)
 
-    log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
-    test_instances = np.array([x[0:] for x in test_data])
-
-    test_instances = [[float(x) for x in instance] for instance in test_instances]
-    test_instances = fs.transform(test_instances)
-    if scaling:
-        test_instances = scaler.transform(test_instances)
-
-    decisions = classifier.predict(test_instances)
-
-    log_info('Output results... ')
+    log_info('Making predictions... ')
+    decisions = classifier.predict(test_instances)    
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
-    run(True, 'data/results-no-scaling.csv')
-    run(False, 'data/results-no-scaling.csv')    
+    run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
+    run(StandardScaler(), 'data/results-scaling-std.csv')
+    run(None, 'data/results-no-scaling.csv')    
 
 if __name__=='__main__':
     main()
