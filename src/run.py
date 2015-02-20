@@ -77,45 +77,43 @@ def best_model(classifier_families, train_instances, judgements):
 
 # Run the data and over multiple classifier and output the data in a csv file using a 
 # specific scaling object
-def run(scaling, output_path):
+def run(scaler, output_path):
     file_log_path = './history'+current_timestamp()+'.log'
     init_logging(file_log_path)
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
+    log_info('Reading testing data... ')
+    test_data = pd.read_csv('data/test-sample.csv', header=0).values
+    test_instances = np.array([x[0:] for x in test_data])
+    test_instances = [[float(x) for x in instance] for instance in test_instances]
+    
     #Feature selection
     logging.info("Selecting features... ")
     fs = feature_selection(train_instances)
     train_instances = fs.transform(train_instances)
+    test_instances = fs.transform(test_instances)
 
     #Normalisation
-    if scaling:
+    if scaler!=None:
         logging.info("Normalisation... ")
         scaler.fit_transform(train_instances)
+        test_instances = scaler.transform(test_instances)
+
     classifier = best_model(candidate_families(), train_instances, judgements)
 
     #build the best model
     log_info('Building model... ')
     classifier.fit(train_instances, judgements)
 
-    log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
-    test_instances = np.array([x[0:] for x in test_data])
-
-    test_instances = [[float(x) for x in instance] for instance in test_instances]
-    test_instances = fs.transform(test_instances)
-    if scaling:
-        test_instances = scaler.transform(test_instances)
-
-    decisions = classifier.predict(test_instances)
-
-    log_info('Output results... ')
+    log_info('Making predictions... ')
+    decisions = classifier.predict(test_instances)    
     decisions_formatted = np.append(np.array('Label'), decisions)
     ids = ['ImageId'] + list(range(1, len(decisions_formatted)))
     output = np.column_stack((ids, decisions_formatted))
