@@ -53,12 +53,6 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-# Returns a Scaler object after fitting and transforming data.
-def feature_scaling(scaler, train_instances):
-    scaler.fit(train_instances)
-    log_info('Scaling of train data done... ')
-    return scaler
-
 # Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
@@ -103,8 +97,7 @@ def run(scaling, output_path):
     #Normalisation
     if scaling:
         logging.info("Normalisation... ")
-        scaler = feature_scaling(train_instances)
-        scaler.transform(train_instances)
+        scaler.fit_transform(train_instances)
     classifier = best_model(candidate_families(), train_instances, judgements)
 
     #build the best model
