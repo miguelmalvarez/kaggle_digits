@@ -53,6 +53,21 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
+# Return models with quality estimations from a set of model families given training data using crosvalidation
+def quality_models(classifier_families, train_instances, judgements):
+    best_quality = 0.0
+    best_classifier = None    
+    classifiers = []
+    for name, model, parameters in classifier_families:
+        log_info('Grid search for... ' + name)
+        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
+        clf.fit(train_instances, judgements)
+        best_estimator = clf.best_estimator_
+        log_info('Best hyperparameters: ' + str(clf.best_params_))
+        classifiers.append([str(clf.best_params_), clf.best_score_, best_estimator])
+
+    return sorted(classifiers, key=lambda model: model[1], reverse=True);
+
 # Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
@@ -83,14 +98,14 @@ def run(scaler, output_path):
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
+    test_data = pd.read_csv('data/test-sample.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
     test_instances = [[float(x) for x in instance] for instance in test_instances]
     
@@ -105,6 +120,9 @@ def run(scaler, output_path):
         logging.info("Normalisation... ")
         scaler.fit_transform(train_instances)
         test_instances = scaler.transform(test_instances)
+
+    classifiers = quality_models(candidate_families(), train_instances, judgements)
+    print(classifiers)
 
     classifier = best_model(candidate_families(), train_instances, judgements)
 

@@ -33,7 +33,7 @@ def xval(classifier, train_instances, judgements):
 def main():
     init_logging('./history.log')
     log_info('============== \nReading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train-sample.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
@@ -46,7 +46,7 @@ def main():
     classifier.fit(train_instances, judgements)
  
     log_info('Reading testing data... ')
-    test_data =  pd.read_csv('data/test.csv', header=0).values
+    test_data =  pd.read_csv('data/test-sample.csv', header=0).values
     decisions = classifier.predict(test_data)
 
     log_info('Output results... ')
