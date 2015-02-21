@@ -70,25 +70,8 @@ def quality_models(classifier_families, train_instances, judgements):
 
 # Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
-    best_quality = 0.0
-    best_classifier = None    
-    classifiers = []
-    for name, model, parameters in classifier_families:
-        log_info('Grid search for... ' + name)
-        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
-        clf.fit(train_instances, judgements)
-        best_estimator = clf.best_estimator_
-        log_info('Best hyperparameters: ' + str(clf.best_params_))
-        classifiers.append([str(clf.best_params_), clf.best_score_, best_estimator])
-
-    for name, quality, classifier in classifiers:
-        log_info('Considering classifier... ' + name)
-        if (quality > best_quality):
-            best_quality = quality
-            best_classifier = [name, classifier]
-
-    log_info('Best classifier... ' + best_classifier[0])
-    return best_classifier[1]
+    models = quality_models(classifier_families, train_instances, judgements)
+    return models[0][2]
 
 # Run the data and over multiple classifier and output the data in a csv file using a 
 # specific scaling object
