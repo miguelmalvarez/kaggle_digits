@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import time
 import datetime
+import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import cross_validation
 from sklearn.naive_bayes import GaussianNB
@@ -18,6 +19,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
+# TODO: Use pipelines
+# TODO: Learning curves
+
 # Formated current timestamp
 def current_timestamp():
     ts = time.time()
@@ -28,19 +32,30 @@ def log_info(message):
     ts = time.time()
     logging.info(message + " " + current_timestamp())
 
+# Force a symlink overwriting it if it already exists
+def force_symlink(file1, file2):
+    try:
+        os.symlink(file1, file2)
+    except e:
+        if e.errno == errno.EEXIST:
+            os.remove(file2)
+            os.symlink(file1, file2)
+
 # Initialise logging
-def init_logging(log_file_path):
-    logging.basicConfig(format='%(message)s', level=logging.INFO, filename=log_file_path)
+def init_logging(log_file_path, log_file_name):
+    file_path = log_file_path + log_file_name
+    logging.basicConfig(format='%(message)s', level=logging.INFO, filename=file_path)
+    force_symlink(file_path, 'last_run')
 
 # List of candidate family classifiers with parameters for grid search
 # [name, classifier object, parameters].
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
+    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [3]}]
     candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [250, 500, 1000]}]
+    rf_tuned_parameters = [{"n_estimators": [1000]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
-    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
+    knn_tuned_parameters = [{"n_neighbors": [3, 5, 10]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
     return candidates
 
@@ -71,13 +86,13 @@ def quality_models(classifier_families, train_instances, judgements):
 # Returns the best model from a set of model families given  training data using crosvalidation
 def best_model(classifier_families, train_instances, judgements):
     models = quality_models(classifier_families, train_instances, judgements)
-    return models[0][2]
+    best = models[0]
+    log_info('Best model: ' + str(best));
+    return best[2]
 
 # Run the data and over multiple classifier and output the data in a csv file using a 
 # specific scaling object
-def run(scaler, output_path):
-    file_log_path = './history'+current_timestamp()+'.log'
-    init_logging(file_log_path)
+def run(scaler, output_path):    
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
@@ -121,6 +136,7 @@ def run(scaler, output_path):
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
+    init_logging('./logs/', current_timestamp()+'.log')
     run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
     run(StandardScaler(), 'data/results-scaling-std.csv')
     run(None, 'data/results-no-scaling.csv')    
