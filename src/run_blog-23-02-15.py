@@ -61,7 +61,7 @@ def best_model(classifier_families, train_instances, judgements):
             best_quality = quality
             best_classifier = [name, classifier]
 
-    log_info('Best classifier... ' + best_classifier[0])
+    log_info('Best classifier... ' + best_classifier[0] + "-" + str(best_classifier[2]))
     return best_classifier[1]
 
 # Return the best 
