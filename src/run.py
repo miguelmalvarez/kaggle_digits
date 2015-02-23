@@ -51,11 +51,11 @@ def init_logging(log_file_path, log_file_name):
 # [name, classifier object, parameters].
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [3]}]
+    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
     candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [1000]}]
+    rf_tuned_parameters = [{"n_estimators": [100, 250, 500 1000]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
-    knn_tuned_parameters = [{"n_neighbors": [3, 5, 10]}]
+    knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
     return candidates
 
@@ -68,27 +68,32 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-# Return models with quality estimations from a set of model families given training data using crosvalidation
-def quality_models(classifier_families, train_instances, judgements):
+# Returns the best model from a set of model families given  training data using crosvalidation
+def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
     best_classifier = None    
     classifiers = []
     for name, model, parameters in classifier_families:
-        log_info('Grid search for... ' + name)
-        clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
-        clf.fit(train_instances, judgements)
-        best_estimator = clf.best_estimator_
-        log_info('Best hyperparameters: ' + str(clf.best_params_))
-        classifiers.append([str(clf.best_params_), clf.best_score_, best_estimator])
+        classifiers.append(best_config([name, model], parameters, train_instances, judgements))
 
-    return sorted(classifiers, key=lambda model: model[1], reverse=True);
+    for name, quality, classifier in classifiers:
+        log_info('Considering classifier... ' + name)
+        if (quality > best_quality):
+            best_quality = quality
+            best_classifier = [name, classifier]
 
-# Returns the best model from a set of model families given  training data using crosvalidation
-def best_model(classifier_families, train_instances, judgements):
-    models = quality_models(classifier_families, train_instances, judgements)
-    best = models[0]
-    log_info('Best model: ' + str(best));
-    return best[2]
+    log_info('Best classifier... ' + best_classifier[0])
+    return best_classifier[1]
+
+# Return the best 
+def best_config(model_info, parameters, train_instances, judgements):
+    [name, model] = model_info
+    log_info('Grid search for... ' + name)
+    clf = GridSearchCV(model, parameters, cv=5, scoring="accuracy", verbose=5, n_jobs=4)
+    clf.fit(train_instances, judgements)
+    best_estimator = clf.best_estimator_
+    log_info('Best configuration: ' + str(clf.best_params_) + str(clf.best_score_))
+    return [str(clf.best_params_), clf.best_score_, best_estimator]
 
 # Run the data and over multiple classifier and output the data in a csv file using a 
 # specific scaling object
