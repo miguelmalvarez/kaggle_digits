@@ -53,7 +53,7 @@ def candidate_families():
     candidates = []
     svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
     candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [100, 250, 500 1000]}]
+    rf_tuned_parameters = [{"n_estimators": [100, 250, 500, 1000]}]
     candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
     knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])
