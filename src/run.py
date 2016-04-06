@@ -21,6 +21,7 @@ from sklearn.grid_search import GridSearchCV
 
 # TODO: Use pipelines
 # TODO: Learning curves
+# TODO: Last_run should be overwritten. It fails at the moment and has to be mannually deleted
 
 # Formated current timestamp
 def current_timestamp():
@@ -101,14 +102,14 @@ def run(scaler, output_path):
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train-sample.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test-sample.csv', header=0).values
+    test_data = pd.read_csv('data/test.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
     test_instances = [[float(x) for x in instance] for instance in test_instances]
     
@@ -123,9 +124,6 @@ def run(scaler, output_path):
         logging.info("Normalisation... ")
         scaler.fit_transform(train_instances)
         test_instances = scaler.transform(test_instances)
-
-    classifiers = quality_models(candidate_families(), train_instances, judgements)
-    print(classifiers)
 
     classifier = best_model(candidate_families(), train_instances, judgements)
 
