@@ -22,7 +22,6 @@ from sklearn.grid_search import GridSearchCV
 
 # TODO: Use pipelines
 # TODO: Learning curves
-# TODO: Last_run should be overwritten. It fails at the moment and has to be mannually deleted
 
 # Formated current timestamp
 def current_timestamp():
@@ -47,7 +46,6 @@ def force_symlink(file1, file2):
 def init_logging(log_file_path, log_file_name):
     file_path = log_file_path + log_file_name
     logging.basicConfig(format='%(message)s', level=logging.INFO, filename=file_path)
-    force_symlink(file_path, 'last_run')
 
 # List of candidate family classifiers with parameters for grid search
 # [name, classifier object, parameters].
@@ -109,7 +107,7 @@ def run(scaler, output_path):
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train-sample-1000.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
