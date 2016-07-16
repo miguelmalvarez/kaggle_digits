@@ -4,9 +4,7 @@ import logging
 import time
 import datetime
 from sklearn.ensemble import RandomForestClassifier
-from sklearn import cross_validation
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
 from sklearn.feature_selection import VarianceThreshold
 from collections import Counter
 from sklearn.neighbors import KNeighborsClassifier
