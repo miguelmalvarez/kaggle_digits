@@ -108,6 +108,7 @@ def run(scaler, output_path):
 
     log_info('Reading training data... ')
     train_data = pd.read_csv('../data/train.csv', header=0).values
+
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
