@@ -1,27 +1,21 @@
-import pandas as pd
-import numpy as np
 import logging
 import time
 import datetime
 import os
+from collections import Counter
+
+import pandas as pd
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import VotingClassifier
-from sklearn import cross_validation
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
-from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import VarianceThreshold
-from collections import Counter
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.grid_search import GridSearchCV
 
 # TODO: Use pipelines
 # TODO: Learning curves
+# TODO: PCA?
 
 # Formated current timestamp
 def current_timestamp():
@@ -51,18 +45,24 @@ def init_logging(log_file_path, log_file_name):
 # [name, classifier object, parameters].
 def candidate_families():
     candidates = []
-    svm_tuned_parameters = [{'kernel': ['poly'], 'degree': [1, 2, 3, 4]}]
-    candidates.append(["SVM", SVC(C=1), svm_tuned_parameters])
-    rf_tuned_parameters = [{"n_estimators": [100, 250, 500]}]
-    candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])        
+    svm_tuned_parameters = [{'kernel': ['poly'],
+                             'degree': [1, 2, 3],
+                             'C': [0.1, 1]}]
+    candidates.append(["SVM", SVC(), svm_tuned_parameters])
+
+    rf_tuned_parameters = [{"n_estimators": [50, 100, 250]}]
+    candidates.append(["RandomForest", RandomForestClassifier(n_jobs=-1), rf_tuned_parameters])
+
     knn_tuned_parameters = [{"n_neighbors": [1, 3, 5, 10, 20]}]
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
-    ensemble_tuned_parameters = [{"voting": ['hard']}]
+
+    ensemble_tuned_parameters = [{"voting": ['hard', 'soft']}]
     ensemble = VotingClassifier(estimators=[
         ('SVM', SVC(C=1, degree=2, kernel='poly')), 
         ('RF', RandomForestClassifier(n_jobs=-1, n_estimators=100)), 
         ('kNN', KNeighborsClassifier(n_neighbors=3))])
     candidates.append(["Ensemble", ensemble, ensemble_tuned_parameters])
+
     return candidates
 
 # Fitting a feature selector 
@@ -107,14 +107,14 @@ def run(scaler, output_path):
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('data/train.csv', header=0).values
+    train_data = pd.read_csv('../data/train.csv', header=0).values
     #the first column of the training set will be the judgements
     judgements = np.array([str(int (x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('data/test.csv', header=0).values
+    test_data = pd.read_csv('../data/test.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
     test_instances = [[float(x) for x in instance] for instance in test_instances]
     
@@ -144,10 +144,10 @@ def run(scaler, output_path):
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
-    init_logging('./logs/', current_timestamp()+'.log')
+    init_logging('../logs/', current_timestamp()+'.log')
     #run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
     #run(StandardScaler(), 'data/results-scaling-std.csv')
-    run(None, 'data/results-no-scaling.csv')    
+    run(None, '../data/results-no-scaling.csv')
 
 if __name__=='__main__':
     main()
