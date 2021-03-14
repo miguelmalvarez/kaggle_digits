@@ -11,20 +11,19 @@ from sklearn.ensemble import VotingClassifier
 from sklearn.svm import SVC
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 
 # TODO: Use pipelines
 # TODO: Learning curves
 # TODO: PCA?
 
-# Formated current timestamp
+# Formatted current timestamp
 def current_timestamp():
     ts = time.time()
-    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
 
 # Log message with timestamp
 def log_info(message):
-    ts = time.time()
     logging.info(message + " " + current_timestamp())
 
 # Force a symlink overwriting it if it already exists
@@ -32,7 +31,7 @@ def force_symlink(file1, file2):
     try:
         os.symlink(file1, file2)
     except OSError as e:
-        if e.errno == errno.EEXIST:
+        if e.errno == e.errno.EEXIST:
             os.remove(file2)
             os.symlink(file1, file2)
 
@@ -57,9 +56,10 @@ def candidate_families():
     candidates.append(["kNN", KNeighborsClassifier(), knn_tuned_parameters])    
 
     ensemble_tuned_parameters = [{"voting": ['hard', 'soft']}]
+    # noinspection PyArgumentEqualDefault
     ensemble = VotingClassifier(estimators=[
         ('SVM', SVC(C=1, degree=2, kernel='poly')), 
-        ('RF', RandomForestClassifier(n_jobs=-1, n_estimators=100)), 
+        ('RF', RandomForestClassifier(n_jobs=-1, n_estimators=100)),
         ('kNN', KNeighborsClassifier(n_neighbors=3))])
     candidates.append(["Ensemble", ensemble, ensemble_tuned_parameters])
 
@@ -74,7 +74,7 @@ def feature_selection(train_instances):
     log_info('Number of features ignored... ' + str(Counter(selector.get_support())[False]))
     return selector
 
-# Returns the best model from a set of model families given  training data using crosvalidation
+# Returns the best model from a set of model families given  training data using crossvalidation
 def best_model(classifier_families, train_instances, judgements):
     best_quality = 0.0
     best_classifier = None    
@@ -84,7 +84,7 @@ def best_model(classifier_families, train_instances, judgements):
 
     for name, quality, classifier in classifiers:
         log_info('Considering classifier... ' + name)
-        if (quality > best_quality):
+        if quality > best_quality:
             best_quality = quality
             best_classifier = [name, classifier]
 
@@ -107,33 +107,33 @@ def run(scaler, output_path):
     log_info('============== \nClassification started... ')
 
     log_info('Reading training data... ')
-    train_data = pd.read_csv('../data/train.csv', header=0).values
+    train_data = pd.read_csv('data/train.csv', header=0).values
 
-    #the first column of the training set will be the judgements
-    judgements = np.array([str(int (x[0])) for x in train_data])
+    # the first column of the training set will be the judgements
+    judgements = np.array([str(int(x[0])) for x in train_data])
     train_instances = np.array([x[1:] for x in train_data])
     train_instances = [[float(x) for x in instance] for instance in train_instances]
 
     log_info('Reading testing data... ')
-    test_data = pd.read_csv('../data/test.csv', header=0).values
+    test_data = pd.read_csv('data/test.csv', header=0).values
     test_instances = np.array([x[0:] for x in test_data])
     test_instances = [[float(x) for x in instance] for instance in test_instances]
     
-    #Feature selection
+    # Feature selection
     logging.info("Selecting features... ")
     fs = feature_selection(train_instances)
     train_instances = fs.transform(train_instances)
     test_instances = fs.transform(test_instances)
 
-    #Normalisation
-    if scaler!=None:
+    # Normalisation
+    if scaler is not None:
         logging.info("Normalisation... ")
         scaler.fit_transform(train_instances)
         test_instances = scaler.transform(test_instances)
 
     classifier = best_model(candidate_families(), train_instances, judgements)
 
-    #build the best model
+    # build the best model
     log_info('Building model... ')
     classifier.fit(train_instances, judgements)
 
@@ -145,10 +145,11 @@ def run(scaler, output_path):
     pd.DataFrame(output).to_csv(output_path, header=False, index=False)
 
 def main():
-    init_logging('../logs/', current_timestamp()+'.log')
-    #run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
-    #run(StandardScaler(), 'data/results-scaling-std.csv')
+    init_logging('logs/', current_timestamp()+'.log')
+    # run(MinMaxScaler(), 'data/results-scaling-minmax.csv')
+    # run(StandardScaler(), 'data/results-scaling-std.csv')
     run(None, '../data/results-no-scaling.csv')
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()
