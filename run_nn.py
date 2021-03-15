@@ -18,10 +18,15 @@ def main():
     x_test = np.array([x for x in test_data]) / 255.0
 
     model_CNN = tf.keras.models.Sequential([
-        tf.keras.layers.Reshape((28, 28, 1), input_shape=(784, 1)),
-        tf.keras.layers.Conv2D(32, kernel_size=(5,5), activation='relu', input_shape=(28,28,1)),
+        tf.keras.layers.Reshape((28, 28, 1), input_shape=(784,1)),
+        tf.keras.layers.Conv2D(8, kernel_size=(5,5), activation='relu', input_shape=(28,28,1)),
         tf.keras.layers.Dropout(0.25),
+        tf.keras.layers.Conv2D(16, kernel_size=(3,3), activation='relu', input_shape=(28,28,1)),
+        tf.keras.layers.Dropout(0.25),
+        # Fully connected after this
         tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dropout(0.25),
         tf.keras.layers.Dense(10, activation='softmax')
     ])
 
@@ -31,14 +36,14 @@ def main():
         tf.keras.layers.Dense(10, activation='softmax')
     ])
 
-    model = model_basic
+    model = model_CNN
 
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer='adam',
                   loss=loss_fn,
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=10)
+    model.fit(x_train, y_train, epochs=10, batch_size=250)
     predictions = np.argmax(model.predict(x_test), axis=-1)
 
     submissions = pd.DataFrame({"ImageId": list(range(1, len(predictions) + 1)),
