@@ -17,18 +17,21 @@ def main():
     x_train = np.array([x[1:] for x in train_data]) / 255.0
     x_test = np.array([x for x in test_data]) / 255.0
 
-    # Reshape
-    x_train = x_train.reshape(-1, 28, 28, 1,)
-    x_test = x_test.reshape(-1, 28, 28, 1, )
-    print(f'X_train shape {x_train.shape}')
-    print(f'y_train shape {y_train.shape}')
-
-    model = tf.keras.models.Sequential([
+    model_CNN = tf.keras.models.Sequential([
+        tf.keras.layers.Reshape((28, 28, 1), input_shape=(784, 1)),
         tf.keras.layers.Conv2D(32, kernel_size=(5,5), activation='relu', input_shape=(28,28,1)),
         tf.keras.layers.Dropout(0.25),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(10, activation='softmax')
     ])
+
+    model_basic = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(784),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+
+    model = model_basic
 
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer='adam',
