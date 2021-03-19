@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 
+SEED = 42
+
 def main():
     train_data = pd.read_csv('data/train.csv', header=0).values
     test_data = pd.read_csv('data/test.csv', header=0).values
@@ -26,14 +28,19 @@ def main():
     X_all_train = X_all_train.reshape(-1, 28, 28, 1)
     X_test = X_test.reshape(-1, 28, 28, 1)
 
-    X_train, X_val, y_train, y_val = train_test_split(X_all_train, y_all_train, test_size=0.1)
+    X_train, X_val, y_train, y_val = train_test_split(X_all_train, y_all_train, test_size=0.1, random_state=SEED)
 
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(8, kernel_size=(5, 5), activation='relu', input_shape=(28, 28, 1)),
-        tf.keras.layers.MaxPool2D(),
-        tf.keras.layers.Conv2D(16, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)),
-        tf.keras.layers.MaxPool2D(),
-        tf.keras.layers.Dropout(0.1),
+        tf.keras.layers.Conv2D(16, kernel_size=(5, 5), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.MaxPool2D(pool_size=(2, 2)),
+        tf.keras.layers.Dropout(0.2),
+
+        tf.keras.layers.Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.MaxPool2D(pool_size=(2,2)),
+        tf.keras.layers.Dropout(0.2),
+
         # Fully connected after this
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(256, activation='relu'),
