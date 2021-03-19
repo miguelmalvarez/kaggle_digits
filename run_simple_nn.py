@@ -24,7 +24,8 @@ def main():
     model.compile(optimizer='adam', metrics=['accuracy'],
                   loss=SparseCategoricalCrossentropy(from_logits=True))
 
-    model.fit(X_train, y_train, epochs=10, validation_data=(X_val, y_val))
+    model.fit(X_train, y_train, epochs=10, batch_size=100,
+              validation_data=(X_val, y_val))
 
     predictions = np.argmax(model.predict(X_test), axis=-1)
     submissions = pd.DataFrame({"ImageId": list(range(1, len(predictions) + 1)),
