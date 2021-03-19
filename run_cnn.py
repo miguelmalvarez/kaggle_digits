@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, MaxPool2D, BatchNormalization, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
 
 SEED = 42
 
@@ -64,10 +65,14 @@ def main():
                              zoom_range=0.1)
     aug.fit(X_train)
 
+    # Early-stop function
+    earlystopper = EarlyStopping(patience=3)
+
     model.fit(aug.flow(X_train, y_train, batch_size=batch_size),
               epochs=epochs,
               batch_size=batch_size,
-              validation_data=(X_val, y_val))
+              validation_data=(X_val, y_val),
+              callbacks=[earlystopper])
 
     predictions = np.argmax(model.predict(X_test), axis=-1,)
     submissions = pd.DataFrame({"ImageId": list(range(1, len(predictions) + 1)),
