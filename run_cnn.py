@@ -33,15 +33,12 @@ def main():
 
     model = tf.keras.models.Sequential([
         Conv2D(16, kernel_size=(5, 5), activation='relu', input_shape=(28, 28, 1)),
-        BatchNormalization(),
         Conv2D(32, kernel_size=(5, 5), activation='relu', input_shape=(28, 28, 1)),
         MaxPool2D(pool_size=(2, 2)),
         BatchNormalization(),
         Dropout(0.2),
 
-        BatchNormalization(),
         Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)),
-        BatchNormalization(),
         Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)),
         MaxPool2D(pool_size=(2,2)),
         BatchNormalization(),
@@ -61,11 +58,10 @@ def main():
                   metrics=['accuracy'])
 
     # Data Augmentation
-    aug = ImageDataGenerator(rotation_range=12,
-                             width_shift_range=0.11,
-                             height_shift_range=0.11,
-                             shear_range=0.15,
-                             zoom_range=0.09)
+    aug = ImageDataGenerator(rotation_range=10,
+                             width_shift_range=0.1,
+                             height_shift_range=0.1,
+                             zoom_range=0.1)
     aug.fit(X_train)
 
     model.fit(aug.flow(X_train, y_train, batch_size=batch_size),
